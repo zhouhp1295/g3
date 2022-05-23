@@ -41,6 +41,9 @@ func (wrapper *BaseQueryWrapper) QueryScope() func(db *gorm.DB) *gorm.DB {
 			}
 		}
 		wrapper.WrapQuery(db)
+
+		db.Where("deleted = ?", FlagNo)
+
 		return db
 	}
 }

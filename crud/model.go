@@ -13,12 +13,17 @@ const (
 )
 
 type ModelInterface interface {
+	GetId() int64
 	// Table 返回表名
 	Table() string
 	// NewModel 返回实例
-	NewModel() interface{}
+	NewModel() ModelInterface
 	// NewModels 返回实例数组
 	NewModels() interface{}
+	// SetCreatedBy 设置操作人
+	SetCreatedBy(operator int64)
+	// SetUpdatedBy 设置操作人
+	SetUpdatedBy(operator int64)
 }
 
 // TailColumns 通用的列,一般放在末尾
@@ -32,6 +37,18 @@ type TailColumns struct {
 	UpdatedBy int64     `gorm:"NOT NULL;DEFAULT:0" json:"-"`
 }
 
+func (tailColumns *TailColumns) SetCreatedBy(operator int64) {
+	tailColumns.CreatedBy = operator
+}
+
+func (tailColumns *TailColumns) SetUpdatedBy(operator int64) {
+	tailColumns.UpdatedBy = operator
+}
+
 type BaseModel struct {
 	Id int64 `json:"id" form:"id"`
+}
+
+func (baseModel *BaseModel) GetId() int64 {
+	return baseModel.Id
 }

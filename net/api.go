@@ -2,6 +2,7 @@ package net
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/zhouhp1295/g3/auth"
 	"github.com/zhouhp1295/g3/crud"
 	"net/http"
 )
@@ -34,7 +35,7 @@ type BaseApi struct {
 }
 
 func (baseApi *BaseApi) Result(ctx *gin.Context, code int, msg string, data interface{}) {
-	ctx.JSON(code, map[string]interface{}{
+	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"code": code,
 		"msg":  msg,
 		"data": data,
@@ -99,7 +100,7 @@ func (baseApi *BaseApi) HandleGet(ctx *gin.Context) {
 			return
 		}
 	default:
-		baseApi.FailedMessage(ctx, "参数错误")
+		baseApi.FailedMessage(ctx, "METHOD错误")
 		return
 	}
 
@@ -114,23 +115,188 @@ func (baseApi *BaseApi) HandleGet(ctx *gin.Context) {
 }
 
 func (baseApi *BaseApi) HandleInsert(ctx *gin.Context) {
-
+	params := baseApi.Dao.GetModel().NewModel()
+	var err error
+	switch Method(ctx.Request.Method) {
+	case http.MethodGet:
+		if err = ctx.ShouldBindQuery(&params); err != nil {
+			baseApi.FailedMessage(ctx, "参数错误")
+			return
+		}
+	case http.MethodPost:
+		fallthrough
+	case http.MethodPut:
+		if err = ctx.ShouldBindJSON(&params); err != nil {
+			baseApi.FailedMessage(ctx, "参数错误")
+			return
+		}
+	default:
+		baseApi.FailedMessage(ctx, "METHOD错误")
+		return
+	}
+	if baseApi.Dao.CountByPk(params.GetId()) != 0 {
+		baseApi.FailedMessage(ctx, "主键重复")
+		return
+	}
+	if _ok, _msg := baseApi.Dao.BeforeInsert(params); !_ok {
+		baseApi.FailedMessage(ctx, "操作失败:"+_msg)
+		return
+	}
+	operator := ctx.GetInt64(auth.CtxJwtUid)
+	if baseApi.Dao.Insert(params, operator) {
+		baseApi.Dao.AfterInsert(params)
+		baseApi.SuccessDefault(ctx)
+	} else {
+		baseApi.FailedMessage(ctx, "操作失败, 请稍后重试")
+	}
 }
 
 func (baseApi *BaseApi) HandleUpdate(ctx *gin.Context) {
-
+	params := baseApi.Dao.GetModel().NewModel()
+	var err error
+	switch Method(ctx.Request.Method) {
+	case http.MethodGet:
+		if err = ctx.ShouldBindQuery(&params); err != nil {
+			baseApi.FailedMessage(ctx, "参数错误")
+			return
+		}
+	case http.MethodPost:
+		fallthrough
+	case http.MethodPut:
+		if err = ctx.ShouldBindJSON(&params); err != nil {
+			baseApi.FailedMessage(ctx, "参数错误")
+			return
+		}
+	default:
+		baseApi.FailedMessage(ctx, "METHOD错误")
+		return
+	}
+	if baseApi.Dao.CountByPk(params.GetId()) == 0 {
+		baseApi.FailedMessage(ctx, "无效的主键")
+		return
+	}
+	if _ok, _msg := baseApi.Dao.BeforeUpdate(params); !_ok {
+		baseApi.FailedMessage(ctx, "操作失败:"+_msg)
+		return
+	}
+	operator := ctx.GetInt64(auth.CtxJwtUid)
+	if baseApi.Dao.Update(params, operator) {
+		baseApi.Dao.AfterUpdate(params)
+		baseApi.SuccessDefault(ctx)
+	} else {
+		baseApi.FailedMessage(ctx, "操作失败, 请稍后重试")
+	}
 }
 
 func (baseApi *BaseApi) HandleUpdateStatus(ctx *gin.Context) {
+	params := UpdateStatusParams{}
+	var err error
+	switch Method(ctx.Request.Method) {
+	case http.MethodGet:
+		if err = ctx.ShouldBindQuery(&params); err != nil {
+			baseApi.FailedMessage(ctx, "参数错误")
+			return
+		}
+	case http.MethodPost:
+		fallthrough
+	case http.MethodPut:
+		if err = ctx.ShouldBindJSON(&params); err != nil {
+			baseApi.FailedMessage(ctx, "参数错误")
+			return
+		}
+	default:
+		baseApi.FailedMessage(ctx, "METHOD错误")
+		return
+	}
+	if baseApi.Dao.CountByPk(params.Id) == 0 {
+		baseApi.FailedNotFound(ctx)
+		return
+	}
+	operator := ctx.GetInt64(auth.CtxJwtUid)
 
+	if baseApi.Dao.UpdateStatus(params.Id, params.Status, operator) {
+		baseApi.SuccessDefault(ctx)
+	} else {
+		baseApi.FailedMessage(ctx, "操作失败, 请稍后重试")
+	}
 }
 
 func (baseApi *BaseApi) HandleDelete(ctx *gin.Context) {
+	params := IdParams{}
+	var err error
+	switch Method(ctx.Request.Method) {
+	case http.MethodGet:
+		fallthrough
+	case http.MethodDelete:
+		if err = ctx.ShouldBindQuery(&params); err != nil {
+			baseApi.FailedMessage(ctx, "参数错误")
+			return
+		}
+	case http.MethodPost:
+		fallthrough
+	case http.MethodPut:
+		if err = ctx.ShouldBindJSON(&params); err != nil {
+			baseApi.FailedMessage(ctx, "参数错误")
+			return
+		}
+	default:
+		baseApi.FailedMessage(ctx, "METHOD错误")
+		return
+	}
 
+	if baseApi.Dao.CountByPk(params.Id) == 0 {
+		baseApi.FailedNotFound(ctx)
+		return
+	}
+
+	m := baseApi.Dao.FindByPk(params.Id)
+
+	operator := ctx.GetInt64(auth.CtxJwtUid)
+
+	if baseApi.Dao.Delete(m, operator) {
+		baseApi.SuccessDefault(ctx)
+	} else {
+		baseApi.FailedMessage(ctx, "操作失败, 请稍后重试")
+	}
 }
 
 func (baseApi *BaseApi) HandleRemove(ctx *gin.Context) {
+	params := IdParams{}
+	var err error
+	switch Method(ctx.Request.Method) {
+	case http.MethodGet:
+		fallthrough
+	case http.MethodDelete:
+		if err = ctx.ShouldBindQuery(&params); err != nil {
+			baseApi.FailedMessage(ctx, "参数错误")
+			return
+		}
+	case http.MethodPost:
+		fallthrough
+	case http.MethodPut:
+		if err = ctx.ShouldBindJSON(&params); err != nil {
+			baseApi.FailedMessage(ctx, "参数错误")
+			return
+		}
+	default:
+		baseApi.FailedMessage(ctx, "METHOD错误")
+		return
+	}
 
+	if baseApi.Dao.CountByPk(params.Id) == 0 {
+		baseApi.FailedNotFound(ctx)
+		return
+	}
+
+	m := baseApi.Dao.FindByPk(params.Id)
+
+	operator := ctx.GetInt64(auth.CtxJwtUid)
+
+	if baseApi.Dao.Remove(m, operator) {
+		baseApi.SuccessDefault(ctx)
+	} else {
+		baseApi.FailedMessage(ctx, "操作失败, 请稍后重试")
+	}
 }
 
 func (baseApi *BaseApi) HandleList(ctx *gin.Context) {
