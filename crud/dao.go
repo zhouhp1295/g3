@@ -75,7 +75,20 @@ func (dao *BaseDao) Insert(m ModelInterface, operator int64) bool {
 // Update 更新数据
 func (dao *BaseDao) Update(m ModelInterface, operator int64) bool {
 	m.SetUpdatedBy(operator)
-	if DbSess().Updates(m).Error == nil {
+
+	sess := DbSess()
+
+	updateCols := m.GetUpdateColumns()
+	if updateCols != nil && len(updateCols) > 0 {
+		sess = sess.Select(updateCols)
+	}
+
+	omitCols := m.GetOmitColumns()
+	if omitCols != nil && len(omitCols) > 0 {
+		sess = sess.Omit(omitCols...)
+	}
+
+	if sess.Updates(m).Error == nil {
 		return true
 	}
 	return false

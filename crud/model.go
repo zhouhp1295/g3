@@ -24,6 +24,12 @@ type ModelInterface interface {
 	SetCreatedBy(operator int64)
 	// SetUpdatedBy 设置操作人
 	SetUpdatedBy(operator int64)
+	// GetUpdateColumns 更新时的列
+	GetUpdateColumns() []string
+	// GetOmitColumns 更新忽略的列
+	GetOmitColumns() []string
+	// GetSelectColumns 查询时的列
+	GetSelectColumns() []string
 }
 
 // TailColumns 通用的列,一般放在末尾
@@ -51,4 +57,16 @@ type BaseModel struct {
 
 func (baseModel *BaseModel) GetId() int64 {
 	return baseModel.Id
+}
+
+func (baseModel *BaseModel) GetUpdateColumns() []string {
+	return nil
+}
+
+func (baseModel *BaseModel) GetOmitColumns() []string {
+	return nil
+}
+
+func (baseModel *BaseModel) GetSelectColumns() []string {
+	return nil
 }

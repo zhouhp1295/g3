@@ -115,19 +115,20 @@ func (jwtAuth *JwtAuth) Authentication(ctx *gin.Context) {
 		_abort()
 		return
 	}
-	//白名单校验
+
+	ctx.Set(CtxJwtUid, claims.Uid)
+	ctx.Set(CtxJwtRoles, claims.Roles)
+
+	// 白名单校验
 	if len(jwtAuth.whiteApiList) > 0 && helpers.IndexOf[string](jwtAuth.whiteApiList, router) >= 0 {
 		ctx.Next()
 		return
 	}
-	//权限校验
+	// 权限校验
 	if !jwtAuth.perm.CheckRolesRouter(claims.Roles, router) {
 		_abort()
 		return
 	}
-
-	ctx.Set(CtxJwtUid, claims.Uid)
-	ctx.Set(CtxJwtRoles, claims.Roles)
 
 	ctx.Next()
 }
