@@ -10,7 +10,7 @@ func InitDbEngine(engine *gorm.DB) {
 	//初始化数据库迁移记录表
 	err := MigrateTables(engine, []interface{}{new(Migration)})
 	if err != nil {
-		panic("Database init error")
+		panic("Database init error" + err.Error())
 	}
 }
 

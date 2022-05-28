@@ -8,7 +8,7 @@ import (
 
 type Migration struct {
 	BaseModel
-	Code string `gorm:"TYPE:VARCHAR(100);UNIQUE;COMMENT:'编号'"`
+	Code string `gorm:"TYPE:VARCHAR(100);UNIQUE;COMMENT:编号"`
 	TailColumns
 }
 
