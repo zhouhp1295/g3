@@ -21,12 +21,15 @@ type DAOInterface interface {
 	RemoveByPk(pk interface{}) bool
 	FindByPk(pk interface{}) ModelInterface
 	FindOneByColumn(column string, value interface{}) ModelInterface
+	Count(query interface{}, args ...interface{}) int64
 	CountByPk(pk interface{}) int64
 	CountByColumn(column string, value interface{}) int64
 	FindPage(modelParams ModelInterface, baseParams *BaseQueryParams) (interface{}, PageData)
 	FindList(modelParams ModelInterface, baseParams *BaseQueryParams) interface{}
 	FindAll(modelParams ModelInterface, baseParams *BaseQueryParams) interface{}
 	FindListByColumn(column string, value interface{}) interface{}
+	// AfterGet AfterGet
+	AfterGet(m ModelInterface)
 	// BeforeInsert 插入之前
 	BeforeInsert(m ModelInterface) (ok bool, msg string)
 	// AfterInsert 插入之后
@@ -135,17 +138,20 @@ func (dao *BaseDao) FindOneByColumn(column string, value interface{}) ModelInter
 	return dst
 }
 
-// CountByPk 根据主键查询
+// CountByPk 根据主键查询数量
 func (dao *BaseDao) CountByPk(pk interface{}) int64 {
-	var cnt int64
-	DbSess().Table(dao.Model.Table()).Where("id = ? and deleted = ?", pk, FlagNo).Count(&cnt)
-	return cnt
+	return dao.Count("id = ?", pk)
 }
 
-// CountByColumn 根据某列查询
+// CountByColumn 根据某列查询数量
 func (dao *BaseDao) CountByColumn(column string, value interface{}) int64 {
+	return dao.Count(column+" = ?", value)
+}
+
+// Count 查询数量
+func (dao *BaseDao) Count(query interface{}, args ...interface{}) int64 {
 	var cnt int64
-	DbSess().Table(dao.Model.Table()).Where(column+" = ? and deleted = ?", value, FlagNo).Count(&cnt)
+	DbSess().Table(dao.Model.Table()).Where(query, args...).Where("deleted = ?", FlagNo).Count(&cnt)
 	return cnt
 }
 
@@ -197,6 +203,10 @@ func (dao *BaseDao) FindListByColumn(column string, value interface{}) interface
 	rows := dao.Model.NewModels()
 	DbSess().Where(column+" = ?", value).Find(&rows)
 	return rows
+}
+
+func (dao *BaseDao) AfterGet(m ModelInterface) {
+
 }
 
 func (dao *BaseDao) BeforeInsert(m ModelInterface) (ok bool, msg string) {

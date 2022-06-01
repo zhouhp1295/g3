@@ -30,6 +30,8 @@ type ModelInterface interface {
 	GetOmitColumns() []string
 	// GetSelectColumns 查询时的列
 	GetSelectColumns() []string
+	// SetLastModel 设置last
+	SetLastModel(last ModelInterface)
 }
 
 // TailColumns 通用的列,一般放在末尾
@@ -52,7 +54,8 @@ func (tailColumns *TailColumns) SetUpdatedBy(operator int64) {
 }
 
 type BaseModel struct {
-	Id int64 `json:"id" form:"id"`
+	Id   int64          `json:"id" form:"id"`
+	Last ModelInterface `gorm:"-" json:"-"`
 }
 
 func (baseModel *BaseModel) GetId() int64 {
@@ -69,4 +72,8 @@ func (baseModel *BaseModel) GetOmitColumns() []string {
 
 func (baseModel *BaseModel) GetSelectColumns() []string {
 	return nil
+}
+
+func (baseModel *BaseModel) SetLastModel(last ModelInterface) {
+	baseModel.Last = last
 }

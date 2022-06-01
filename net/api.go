@@ -111,6 +111,8 @@ func (baseApi *BaseApi) HandleGet(ctx *gin.Context) {
 
 	m := baseApi.Dao.FindByPk(params.Id)
 
+	baseApi.Dao.AfterGet(m)
+
 	baseApi.SuccessData(ctx, m)
 }
 
@@ -145,7 +147,7 @@ func (baseApi *BaseApi) HandleInsert(ctx *gin.Context) {
 	operator := ctx.GetInt64(auth.CtxJwtUid)
 	if baseApi.Dao.Insert(params, operator) {
 		baseApi.Dao.AfterInsert(params)
-		baseApi.SuccessDefault(ctx)
+		baseApi.SuccessData(ctx, params)
 	} else {
 		baseApi.FailedMessage(ctx, "操作失败, 请稍后重试")
 	}
@@ -208,6 +210,10 @@ func (baseApi *BaseApi) HandleUpdateStatus(ctx *gin.Context) {
 		baseApi.FailedMessage(ctx, "METHOD错误")
 		return
 	}
+	if len(params.Status) == 0 {
+		baseApi.FailedMessage(ctx, "参数错误")
+		return
+	}
 	if baseApi.Dao.CountByPk(params.Id) == 0 {
 		baseApi.FailedNotFound(ctx)
 		return
@@ -251,9 +257,13 @@ func (baseApi *BaseApi) HandleDelete(ctx *gin.Context) {
 
 	m := baseApi.Dao.FindByPk(params.Id)
 
+	if _ok, _msg := baseApi.Dao.BeforeDelete(m); !_ok {
+		baseApi.FailedMessage(ctx, "操作失败:"+_msg)
+		return
+	}
 	operator := ctx.GetInt64(auth.CtxJwtUid)
-
 	if baseApi.Dao.Delete(m, operator) {
+		baseApi.Dao.AfterDelete(m)
 		baseApi.SuccessDefault(ctx)
 	} else {
 		baseApi.FailedMessage(ctx, "操作失败, 请稍后重试")
@@ -290,9 +300,13 @@ func (baseApi *BaseApi) HandleRemove(ctx *gin.Context) {
 
 	m := baseApi.Dao.FindByPk(params.Id)
 
+	if _ok, _msg := baseApi.Dao.BeforeRemove(m); !_ok {
+		baseApi.FailedMessage(ctx, "操作失败:"+_msg)
+		return
+	}
 	operator := ctx.GetInt64(auth.CtxJwtUid)
-
 	if baseApi.Dao.Remove(m, operator) {
+		baseApi.Dao.AfterRemove(m)
 		baseApi.SuccessDefault(ctx)
 	} else {
 		baseApi.FailedMessage(ctx, "操作失败, 请稍后重试")
@@ -300,7 +314,23 @@ func (baseApi *BaseApi) HandleRemove(ctx *gin.Context) {
 }
 
 func (baseApi *BaseApi) HandleList(ctx *gin.Context) {
-
+	modelParams := baseApi.Dao.GetModel().NewModel().(crud.ModelInterface)
+	baseParams := new(crud.BaseQueryParams)
+	switch Method(ctx.Request.Method) {
+	case http.MethodGet:
+		_ = ctx.ShouldBindQuery(modelParams)
+		_ = ctx.ShouldBindQuery(baseParams)
+	case http.MethodPost:
+		fallthrough
+	case http.MethodPut:
+		_ = ctx.ShouldBindJSON(modelParams)
+		_ = ctx.ShouldBindJSON(baseParams)
+	default:
+		baseApi.FailedMessage(ctx, "Method错误")
+		return
+	}
+	rows := baseApi.Dao.FindList(modelParams, baseParams)
+	baseApi.SuccessList(ctx, rows)
 }
 
 func (baseApi *BaseApi) HandlePage(ctx *gin.Context) {
