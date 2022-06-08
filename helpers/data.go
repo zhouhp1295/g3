@@ -1,29 +1,33 @@
 package helpers
 
+const EmptyId = 0
+
 type SelectOption struct {
 	Id    int64  `json:"id"`
 	Label string `json:"label"`
 }
 
-type TreeItem struct {
-	Id   string
-	Pid  string
-	Name string
+type TreeOption struct {
+	Id    int64  `json:"id"`
+	Pid   int64  `json:"pid"`
+	Label string `json:"label"`
 }
 
 type TreeNode struct {
-	Id       string     `json:"id"`
-	Label    string     `json:"label"`
+	TreeOption
 	Children []TreeNode `json:"children"`
 }
 
-func getTreeChildren(items []TreeItem, pid string) []TreeNode {
+func getTreeChildren(items []TreeOption, pid int64) []TreeNode {
 	result := make([]TreeNode, 0)
 	for _, item := range items {
 		if item.Pid == pid {
 			result = append(result, TreeNode{
-				Id:       item.Id,
-				Label:    item.Name,
+				TreeOption: TreeOption{
+					Pid:   pid,
+					Id:    item.Id,
+					Label: item.Label,
+				},
 				Children: getTreeChildren(items, item.Id),
 			})
 		}
@@ -31,13 +35,16 @@ func getTreeChildren(items []TreeItem, pid string) []TreeNode {
 	return result
 }
 
-func ToTree(items []TreeItem) []TreeNode {
+func ToTree(items []TreeOption) []TreeNode {
 	result := make([]TreeNode, 0)
 	for _, item := range items {
-		if item.Pid == "0" {
+		if item.Pid == EmptyId {
 			result = append(result, TreeNode{
-				Id:       item.Id,
-				Label:    item.Name,
+				TreeOption: TreeOption{
+					Pid:   EmptyId,
+					Id:    item.Id,
+					Label: item.Label,
+				},
 				Children: getTreeChildren(items, item.Id),
 			})
 		}
