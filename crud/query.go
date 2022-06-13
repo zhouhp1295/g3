@@ -2,6 +2,7 @@ package crud
 
 import (
 	"fmt"
+	"github.com/zhouhp1295/g3/helpers"
 	"gorm.io/gorm"
 	"reflect"
 	"strings"
@@ -72,17 +73,22 @@ func wrapperQuery(table string, params interface{}, db *gorm.DB) {
 			wrapperQuery(table, v.Field(i).Interface(), db)
 			continue
 		}
-		if str, ok := v.Field(i).Interface().(string); ok && len(str) == 0 {
-			continue
-		}
 		sf := t.Field(i)
 		if query := sf.Tag.Get("query"); len(query) > 0 {
+			queryItems := strings.Split(strings.ToLower(query), ";")
+			if helpers.IndexOf[string](queryItems, "skipnil") >= 0 {
+				if str, ok := v.Field(i).Interface().(string); ok && len(str) == 0 {
+					continue
+				}
+				if i, ok := helpers.Int64(v.Field(i).Interface()); ok && i == 0 {
+					continue
+				}
+			}
 			//目前只简单处理列的名字
 			colName := db.Statement.NamingStrategy.ColumnName(table, sf.Name)
-			switch strings.ToLower(query) {
-			case "like":
+			if helpers.IndexOf[string](queryItems, "like") >= 0 {
 				db.Where(colName+" like ?", fmt.Sprintf("%%%v%%", v.Field(i).Interface()))
-			case "eq":
+			} else if helpers.IndexOf[string](queryItems, "eq") >= 0 {
 				db.Where(colName+" = ?", v.Field(i).Interface())
 			}
 		}
