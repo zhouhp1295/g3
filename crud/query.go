@@ -72,7 +72,7 @@ func wrapperQuery(table string, params interface{}, db *gorm.DB) {
 			wrapperQuery(table, v.Field(i).Interface(), db)
 			continue
 		}
-		if str, ok := v.Field(i).Interface().(string); !ok || len(str) == 0 {
+		if str, ok := v.Field(i).Interface().(string); ok && len(str) == 0 {
 			continue
 		}
 		sf := t.Field(i)
