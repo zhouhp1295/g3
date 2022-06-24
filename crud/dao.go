@@ -194,7 +194,13 @@ func (dao *BaseDao) FindList(modelParams ModelInterface, baseParams *BaseQueryPa
 func (dao *BaseDao) FindAll(modelParams ModelInterface, baseParams *BaseQueryParams) interface{} {
 	rows := dao.Model.NewModels()
 	wrapper := dao.NewWrapper(modelParams, baseParams)
-	DbSess().Scopes(wrapper.QueryScope()).Find(&rows)
+	db := DbSess().Scopes(wrapper.QueryScope())
+	if baseParams != nil && len(baseParams.OrderBy) > 0 {
+		db.Order(baseParams.OrderBy)
+	} else {
+		db.Order("id DESC")
+	}
+	db.Find(&rows)
 	return rows
 }
 

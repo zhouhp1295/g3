@@ -76,11 +76,12 @@ func wrapperQuery(table string, params interface{}, db *gorm.DB) {
 		sf := t.Field(i)
 		if query := sf.Tag.Get("query"); len(query) > 0 {
 			queryItems := strings.Split(strings.ToLower(query), ";")
-			if helpers.IndexOf[string](queryItems, "skipnil") >= 0 {
+			//must 若不存在此标注, 则忽略空值(空字符串、数字0)
+			if helpers.IndexOf[string](queryItems, "must") < 0 {
 				if str, ok := v.Field(i).Interface().(string); ok && len(str) == 0 {
 					continue
 				}
-				if i, ok := helpers.Int64(v.Field(i).Interface()); ok && i == 0 {
+				if i64, ok := helpers.Int64(v.Field(i).Interface()); ok && i64 == 0 {
 					continue
 				}
 			}
@@ -103,16 +104,24 @@ func (wrapper *BaseQueryWrapper) WrapQuery(db *gorm.DB) {
 
 func (wrapper *BaseQueryWrapper) PageScope() func(db *gorm.DB) *gorm.DB {
 	return func(db *gorm.DB) *gorm.DB {
-		if wrapper.BaseParams.PageNum <= 0 {
-			wrapper.BaseParams.PageNum = 1
-		}
-		if wrapper.BaseParams.PageSize <= 0 {
-			wrapper.BaseParams.PageSize = DefaultPageSize
+		page := 1
+		pageSize := DefaultPageSize
+		orderBy := "id DESC"
+		if wrapper.BaseParams != nil {
+			if wrapper.BaseParams.PageNum > 0 {
+				page = wrapper.BaseParams.PageNum
+			}
+			if wrapper.BaseParams.PageSize > 0 {
+				pageSize = wrapper.BaseParams.PageSize
+			}
+			if len(wrapper.BaseParams.OrderBy) > 0 {
+				orderBy = wrapper.BaseParams.OrderBy
+			}
 		}
 		return db.
-			Offset((wrapper.BaseParams.PageNum - 1) * wrapper.BaseParams.PageSize).
-			Limit(wrapper.BaseParams.PageSize).
-			Order(wrapper.BaseParams.OrderBy)
+			Offset((page - 1) * pageSize).
+			Limit(pageSize).
+			Order(orderBy)
 	}
 }
 
