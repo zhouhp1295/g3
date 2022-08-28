@@ -1,3 +1,5 @@
+// Copyright (c) 554949297@qq.com . 2022-2022 . All rights reserved
+
 package helpers
 
 func Int64(data interface{}) (int64, bool) {
